@@ -156,8 +156,12 @@ const calendarDays = computed((): CalendarDay[] => {
 })
 
 const hasEventOnDate = (date: Date): boolean => {
-  const dateStr = date.toISOString().split('T')[0]
-  return props.eventDates.includes(dateStr as string)
+  // Convert date to YYYY-MM-DD using local timezone
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const dateStr = `${year}-${month}-${day}`
+  return props.eventDates.includes(dateStr)
 }
 
 const selectDate = (date: Date) => {

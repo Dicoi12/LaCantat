@@ -58,7 +58,7 @@
             v-if="isAdmin"
             label="Adaugă eveniment"
             icon="pi pi-plus"
-            @click="showEventDialog = true"
+            @click="openAddEventDialog"
           />
         </div>
       </template>
@@ -148,7 +148,7 @@
         v-if="showEventDialog"
         :event="editingEvent"
         @submit="handleEventSubmit"
-        @cancel="showEventDialog = false"
+        @cancel="handleEventCancel"
       />
     </Dialog>
 
@@ -226,7 +226,7 @@
         v-if="showEventDialog"
         :event="editingEvent"
         @submit="handleEventSubmit"
-        @cancel="showEventDialog = false"
+        @cancel="handleEventCancel"
       />
     </Dialog>
 
@@ -286,7 +286,9 @@ const currentMonthLabel = computed(() => {
 // Evenimente filtrate pentru luna curentă
 const filteredEvents = computed(() => {
   return events.value.filter(event => {
-    const eventDate = new Date(event.event_date)
+    // Parse date string YYYY-MM-DD using local timezone
+    const [year, month, day] = event.event_date.split('-').map(Number)
+    const eventDate = new Date(year!, month! - 1, day!)
     return eventDate.getMonth() + 1 === currentMonth.value &&
            eventDate.getFullYear() === currentYear.value
   })
@@ -296,18 +298,23 @@ const filteredEvents = computed(() => {
 const eventDatesList = computed(() => {
   return filteredEvents.value
     .map(event => {
-      const dateStr = new Date(event.event_date).toISOString().split('T')[0]
-      return dateStr
+      // Return date string as-is (already in YYYY-MM-DD format)
+      return event.event_date
     })
     .filter((date): date is string => !!date)
 })
 
 // Obține evenimentele pentru o zi specifică
 const getEventsForDate = (date: Date): Event[] => {
-  const dateStr = date.toISOString().split('T')[0]
+  // Convert date to YYYY-MM-DD using local timezone
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  const dateStr = `${year}-${month}-${day}`
+  
   return filteredEvents.value.filter(event => {
-    const eventDate = new Date(event.event_date).toISOString().split('T')[0]
-    return eventDate === dateStr
+    // Compare directly with event_date string (already in YYYY-MM-DD format)
+    return event.event_date === dateStr
   })
 }
 
@@ -343,7 +350,9 @@ const onMonthChange = (date: Date) => {
 }
 
 const formatDate = (dateString: string) => {
-  const date = new Date(dateString)
+  // Parse date string YYYY-MM-DD using local timezone
+  const [year, month, day] = dateString.split('-').map(Number)
+  const date = new Date(year!, month! - 1, day!)
   return date.toLocaleDateString('ro-RO', {
     year: 'numeric',
     month: 'long',
@@ -384,7 +393,9 @@ const daysUntilEvent = computed<number | null>(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
 
-  const eventDate = new Date(nextEvent.value.event_date)
+  // Parse date string YYYY-MM-DD using local timezone
+  const [year, month, day] = nextEvent.value.event_date.split('-').map(Number)
+  const eventDate = new Date(year!, month! - 1, day!)
   eventDate.setHours(0, 0, 0, 0)
 
   const diffTime = eventDate.getTime() - today.getTime()
@@ -411,6 +422,11 @@ const loadNextEvent = async () => {
   nextEventLoading.value = true
   nextEvent.value = await getNextEvent()
   nextEventLoading.value = false
+}
+
+const openAddEventDialog = () => {
+  editingEvent.value = null
+  showEventDialog.value = true
 }
 
 const editEvent = (event: Event) => {
@@ -465,6 +481,11 @@ const confirmDelete = (event: Event) => {
       }
     }
   })
+}
+
+const handleEventCancel = () => {
+  showEventDialog.value = false
+  editingEvent.value = null
 }
 
 const handleEventSubmit = async (eventData: CreateEventData) => {

@@ -42,13 +42,14 @@
     <div class="field-row">
       <div class="field">
         <label for="event_date">Dată *</label>
-        <Calendar
+        <DatePicker
           id="event_date"
           v-model="formData.event_date as unknown as Date"
-          dateFormat="yy-mm-dd"
+          dateFormat="dd-mm-yy"
           :minDate="new Date()"
           :class="{ 'p-invalid': errors.event_date }"
           required
+          showIcon
         />
         <small v-if="errors.event_date" class="p-error">{{ errors.event_date }}</small>
       </div>
@@ -84,11 +85,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import type { Event, CreateEventData } from '@/composables/useEvents'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
-import Calendar from 'primevue/calendar'
+import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 
 interface Props {
@@ -153,20 +154,28 @@ const handleSubmit = () => {
     return
   }
 
-  // Convert date to YYYY-MM-DD format
+  // Convert date to YYYY-MM-DD format (avoiding timezone issues)
   let dateStr = ''
   const eventDate = formData.value.event_date
   
   if (!eventDate) {
     dateStr = ''
   } else if (eventDate instanceof Date) {
-    dateStr = eventDate.toISOString().split('T')[0] || ''
+    // Use local date components to avoid timezone conversion issues
+    const year = eventDate.getFullYear()
+    const month = String(eventDate.getMonth() + 1).padStart(2, '0')
+    const day = String(eventDate.getDate()).padStart(2, '0')
+    dateStr = `${year}-${month}-${day}`
   } else if (typeof eventDate === 'string') {
     dateStr = eventDate
   } else if (Array.isArray(eventDate) && eventDate.length > 0) {
     const firstDate = eventDate[0]
     if (firstDate instanceof Date) {
-      dateStr = firstDate.toISOString().split('T')[0] || ''
+      // Use local date components to avoid timezone conversion issues
+      const year = firstDate.getFullYear()
+      const month = String(firstDate.getMonth() + 1).padStart(2, '0')
+      const day = String(firstDate.getDate()).padStart(2, '0')
+      dateStr = `${year}-${month}-${day}`
     }
   }
 
@@ -181,6 +190,17 @@ const handleSubmit = () => {
   } as CreateEventData)
 }
 
+const resetForm = () => {
+  formData.value = {
+    title: '',
+    type: 'cununie',
+    location: '',
+    event_date: null,
+    event_time: ''
+  }
+  errors.value = {}
+}
+
 onMounted(() => {
   if (props.event) {
     formData.value = {
@@ -190,6 +210,23 @@ onMounted(() => {
       event_date: props.event.event_date,
       event_time: props.event.event_time
     }
+  } else {
+    resetForm()
+  }
+})
+
+// Watch pentru a reseta formularul când event devine null
+watch(() => props.event, (newEvent) => {
+  if (newEvent) {
+    formData.value = {
+      title: newEvent.title,
+      type: newEvent.type,
+      location: newEvent.location,
+      event_date: newEvent.event_date,
+      event_time: newEvent.event_time
+    }
+  } else {
+    resetForm()
   }
 })
 </script>
