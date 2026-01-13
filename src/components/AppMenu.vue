@@ -148,8 +148,21 @@ const menuItems = computed<MenuItem[]>(() => {
   gap: 0.5rem;
 }
 
+/* Desktop - logo pe o singură linie */
+.desktop-menu .logo-content {
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.desktop-menu .user-greeting {
+  margin-left: 0.5rem;
+  padding-left: 0.75rem;
+  border-left: 1px solid var(--surface-border);
+}
+
 .menu-title {
-  color: var(--primary-color);
+  color: var(--text-color);
 }
 
 .user-greeting {
@@ -246,9 +259,7 @@ const menuItems = computed<MenuItem[]>(() => {
     display: none !important;
   }
 
-  .desktop-menu {
-    display: block;
-  }
+  
 }
 
 /* Mobile - hide desktop menu, show mobile menu */

@@ -32,6 +32,18 @@
               {{ formatDate(data.created_at) }}
             </template>
           </Column>
+          <Column header="Acțiuni" :exportable="false">
+            <template #body="{ data }">
+              <Button
+                icon="pi pi-pencil"
+                severity="secondary"
+                text
+                rounded
+                @click="editUserRole(data)"
+                v-tooltip.top="'Editează rolul'"
+              />
+            </template>
+          </Column>
         </DataTable>
       </template>
     </Card>
@@ -50,6 +62,45 @@
         @cancel="showUserDialog = false"
       />
     </Dialog>
+
+    <!-- Dialog pentru editare rol -->
+    <Dialog
+      v-model:visible="showEditRoleDialog"
+      header="Editează rolul utilizatorului"
+      :modal="true"
+      :style="{ width: '90%', maxWidth: '400px' }"
+    >
+      <div v-if="editingUser" class="edit-role-form">
+        <div class="user-info">
+          <p><strong>Username:</strong> {{ editingUser.username }}</p>
+          <p v-if="editingUser.full_name"><strong>Nume:</strong> {{ editingUser.full_name }}</p>
+        </div>
+        <div class="field">
+          <label for="role">Rol *</label>
+          <Select
+            id="role"
+            v-model="newRole"
+            :options="roles"
+            optionLabel="label"
+            optionValue="value"
+            placeholder="Selectează rolul"
+            class="role-select"
+          />
+        </div>
+        <div class="form-actions">
+          <Button
+            label="Anulează"
+            severity="secondary"
+            @click="showEditRoleDialog = false"
+          />
+          <Button
+            label="Salvează"
+            :loading="updatingRole"
+            @click="handleRoleUpdate"
+          />
+        </div>
+      </div>
+    </Dialog>
   </div>
 </template>
 
@@ -63,13 +114,24 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
+import Select from 'primevue/select'
 import UserForm from '@/components/UserForm.vue'
+import type { UserProfile } from '@/services/authService'
 
 const toast = useToast()
 const showUserDialog = ref(false)
-const users = ref<any[]>([])
+const showEditRoleDialog = ref(false)
+const users = ref<UserProfile[]>([])
 const usersLoading = ref(false)
 const creatingUser = ref(false)
+const updatingRole = ref(false)
+const editingUser = ref<UserProfile | null>(null)
+const newRole = ref<'member' | 'admin'>('member')
+
+const roles = [
+  { label: 'Membru', value: 'member' },
+  { label: 'Admin', value: 'admin' }
+]
 
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
@@ -109,6 +171,34 @@ const handleUserSubmit = async (userData: {
   }
 }
 
+const editUserRole = (user: UserProfile) => {
+  editingUser.value = user
+  newRole.value = user.role
+  showEditRoleDialog.value = true
+}
+
+const handleRoleUpdate = async () => {
+  if (!editingUser.value) return
+
+  updatingRole.value = true
+  try {
+    const {  error } = await userService.updateUser(editingUser.value.id, {
+      role: newRole.value
+    })
+
+    if (error) {
+      toast.add({ severity: 'error', summary: 'Eroare', detail: error.message, life: 3000 })
+    } else {
+      toast.add({ severity: 'success', summary: 'Succes', detail: 'Rol actualizat cu succes', life: 3000 })
+      showEditRoleDialog.value = false
+      editingUser.value = null
+      await loadUsers()
+    }
+  } finally {
+    updatingRole.value = false
+  }
+}
+
 const loadUsers = async () => {
   usersLoading.value = true
   try {
@@ -140,6 +230,45 @@ onMounted(async () => {
   flex-direction: column;
   gap: 1rem;
   width: 100%;
+}
+
+.edit-role-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.user-info {
+  padding: 1rem;
+  background: var(--surface-ground);
+  border-radius: 8px;
+}
+
+.user-info p {
+  margin: 0.5rem 0;
+  color: var(--text-color);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.field label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.role-select {
+  width: 100%;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
 }
 
 @media (min-width: 768px) {

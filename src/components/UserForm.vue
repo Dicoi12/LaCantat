@@ -175,17 +175,62 @@ onMounted(() => {
 .user-form {
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  gap: 1.75rem;
 }
 
 .field {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: 0.625rem;
 }
 
 .field label {
-  font-weight: 500;
+  font-weight: 600;
+  color: var(--text-color);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.field label::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: var(--primary-color);
+  border-radius: 2px;
+}
+
+.field :deep(.p-inputtext),
+.field :deep(.p-select),
+.field :deep(.p-password input) {
+  width: 100%;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 2px solid var(--surface-border);
+  transition: all 0.2s;
+  font-size: 1rem;
+}
+
+.field :deep(.p-inputtext:focus),
+.field :deep(.p-select:focus),
+.field :deep(.p-password input:focus) {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 0.2rem rgba(99, 102, 241, 0.2);
+  outline: none;
+}
+
+.field :deep(.p-select) {
+  width: 100%;
+}
+
+.field :deep(.p-password) {
+  width: 100%;
+}
+
+.field :deep(.p-password-panel) {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .form-actions {
@@ -193,6 +238,30 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--surface-border);
+}
+
+.form-actions :deep(.p-button) {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s;
+}
+
+.form-actions :deep(.p-button:hover) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+  .form-actions {
+    flex-direction: column;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
 }
 </style>
 
