@@ -8,6 +8,10 @@ import 'primeicons/primeicons.css'
 import ToastService from 'primevue/toastservice';
 import ConfirmationService from 'primevue/confirmationservice';
 import { useAuth } from './composables/useAuth';
+import { setupAutoUpdate } from './utils/pwa-update';
+
+// Configurează actualizarea automată PWA (similar cu Ctrl+F5)
+setupAutoUpdate()
 
 const app = createApp(App)
 
