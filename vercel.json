@@ -20,7 +20,7 @@
       ]
     },
     {
-      "source": "/workbox-*.js",
+      "source": "/assets/:path*",
       "headers": [
         {
           "key": "Cache-Control",
