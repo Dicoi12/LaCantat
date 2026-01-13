@@ -99,19 +99,27 @@ export function useAuth() {
     loading.value = true
     error.value = null
 
-    const response = await authService.signOut()
-
-    if (response.error) {
-      error.value = response.error.message
-      loading.value = false
-      return false
-    }
-
+    // Întotdeauna curăță starea locală, chiar dacă signOut() eșuează
+    // (de exemplu, dacă sesiunea este deja expirată)
     currentUser.value = null
     currentSession.value = null
     userProfile.value = null
+
+    // Încearcă să facă signOut pe server, dar nu blochează dacă eșuează
+    try {
+      const response = await authService.signOut()
+      if (response.error) {
+        // Dacă există eroare (ex: sesiune expirată), ignorăm și continuăm
+        console.warn('SignOut error (ignored):', response.error.message)
+      }
+    } catch (err) {
+      // Dacă signOut aruncă o excepție (ex: sesiune invalidă), ignorăm
+      console.warn('SignOut exception (ignored):', err)
+    }
+
     loading.value = false
 
+    // Redirecționează întotdeauna la login, indiferent de rezultat
     router.push('/login')
     return true
   }
@@ -132,12 +140,28 @@ export function useAuth() {
     try {
       const session = await authService.getSession()
       if (session?.user) {
-        currentSession.value = session
-        currentUser.value = session.user
-        await loadUserProfile(session.user.id)
+        // Verifică dacă sesiunea este validă încercând să obțină profilul
+        try {
+          await loadUserProfile(session.user.id)
+          currentSession.value = session
+          currentUser.value = session.user
+        } catch (err) {
+          // Dacă nu poate încărca profilul, sesiunea este invalidă
+          console.error('Invalid session, clearing auth state:', err)
+          await signOut()
+        }
       }
-    } catch (err) {
-      console.error('Error initializing auth:', err)
+    } catch (err: any) {
+      // Dacă eroarea indică sesiune invalidă, curăță starea
+      if (err?.message?.includes('session') || err?.message?.includes('JWT')) {
+        console.error('Invalid session detected, clearing auth state:', err)
+        currentUser.value = null
+        currentSession.value = null
+        userProfile.value = null
+        // Nu apelăm signOut() aici pentru a evita redirect-uri infinite
+      } else {
+        console.error('Error initializing auth:', err)
+      }
     } finally {
       loading.value = false
     }
@@ -151,15 +175,65 @@ export function useAuth() {
       if (event === 'SIGNED_IN' && session?.user) {
         currentUser.value = session.user
         currentSession.value = session
-        await loadUserProfile(session.user.id)
+        try {
+          await loadUserProfile(session.user.id)
+        } catch (err) {
+          console.error('Error loading user profile:', err)
+        }
       } else if (event === 'SIGNED_OUT') {
         currentUser.value = null
         currentSession.value = null
         userProfile.value = null
+        // Redirecționează la login doar dacă nu suntem deja acolo
+        if (router.currentRoute.value.name !== 'login' && router.currentRoute.value.name !== 'signup') {
+          router.push('/login')
+        }
       } else if (event === 'TOKEN_REFRESHED' && session) {
+        // Token-ul a fost reînnoit cu succes
         currentSession.value = session
+        if (session.user) {
+          currentUser.value = session.user
+        }
+        console.log('Token refreshed successfully')
+      } else if (event === 'USER_UPDATED' && session) {
+        currentSession.value = session
+        if (session.user) {
+          currentUser.value = session.user
+        }
       }
     })
+  }
+
+  /**
+   * Verifică și reînnoiește sesiunea dacă este aproape de expirare
+   */
+  const checkAndRefreshSession = async () => {
+    try {
+      const session = await authService.getSession()
+      if (session) {
+        // Verifică dacă token-ul expiră în următoarele 5 minute
+        const expiresAt = session.expires_at
+        if (expiresAt) {
+          const expiresIn = expiresAt - Math.floor(Date.now() / 1000)
+          // Dacă expiră în următoarele 5 minute, forțează refresh
+          if (expiresIn < 300) {
+          const { session: refreshedSession, error } = await authService.refreshSession()
+          if (error) {
+            console.error('Failed to refresh session:', error)
+            // Dacă refresh-ul eșuează, curăță starea și redirecționează
+            await signOut()
+          } else if (refreshedSession) {
+            currentSession.value = refreshedSession
+            if (refreshedSession.user) {
+              currentUser.value = refreshedSession.user
+            }
+          }
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error checking session:', err)
+    }
   }
 
   /**
@@ -172,15 +246,26 @@ export function useAuth() {
     }
   }
 
+  let refreshInterval: ReturnType<typeof setInterval> | null = null
+
   // Inițializare la mount
   onMounted(async () => {
     await initAuth()
     setupAuthListener()
+    
+    // Verifică și reînnoiește sesiunea la fiecare 5 minute
+    refreshInterval = setInterval(() => {
+      checkAndRefreshSession()
+    }, 5 * 60 * 1000) // 5 minute
   })
 
   // Cleanup la unmount
   onUnmounted(() => {
     removeAuthListener()
+    if (refreshInterval) {
+      clearInterval(refreshInterval)
+      refreshInterval = null
+    }
   })
 
   return {
@@ -199,7 +284,8 @@ export function useAuth() {
     signUp,
     signOut,
     loadUserProfile,
-    initAuth
+    initAuth,
+    checkAndRefreshSession
   }
 }
 

@@ -83,12 +83,39 @@ export const authService = {
 
   /**
    * Logout
+   * Gestionează și cazul când sesiunea este deja expirată/invalidă
    */
   async signOut(): Promise<{ error: Error | null }> {
     try {
+      // Încearcă să facă signOut
       const { error } = await supabase.auth.signOut()
-      return { error: error ? new Error(error.message) : null }
+      
+      // Dacă eroarea indică sesiune invalidă/expirată, nu o tratăm ca eroare critică
+      if (error) {
+        const errorMessage = error.message.toLowerCase()
+        if (errorMessage.includes('session') || 
+            errorMessage.includes('jwt') || 
+            errorMessage.includes('expired') ||
+            errorMessage.includes('invalid')) {
+          // Sesiunea este deja invalidă, ceea ce este ok pentru logout
+          // Returnăm null pentru a indica că logout-ul a reușit (starea este deja curățată)
+          return { error: null }
+        }
+        return { error: new Error(error.message) }
+      }
+      
+      return { error: null }
     } catch (error) {
+      // Dacă eroarea este despre sesiune invalidă, ignorăm
+      if (error instanceof Error) {
+        const errorMessage = error.message.toLowerCase()
+        if (errorMessage.includes('session') || 
+            errorMessage.includes('jwt') || 
+            errorMessage.includes('expired') ||
+            errorMessage.includes('invalid')) {
+          return { error: null }
+        }
+      }
       return {
         error: error instanceof Error ? error : new Error('Eroare la logout')
       }
@@ -129,6 +156,24 @@ export const authService = {
       return data as UserProfile
     } catch {
       return null
+    }
+  },
+
+  /**
+   * Reînnoiește sesiunea curentă
+   */
+  async refreshSession(): Promise<{ session: Session | null; error: Error | null }> {
+    try {
+      const { data, error } = await supabase.auth.refreshSession()
+      if (error) {
+        return { session: null, error }
+      }
+      return { session: data.session, error: null }
+    } catch (error) {
+      return {
+        session: null,
+        error: error instanceof Error ? error : new Error('Eroare la reînnoirea sesiunii')
+      }
     }
   },
 

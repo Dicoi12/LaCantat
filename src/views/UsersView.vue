@@ -34,14 +34,24 @@
           </Column>
           <Column header="Acțiuni" :exportable="false">
             <template #body="{ data }">
-              <Button
-                icon="pi pi-pencil"
-                severity="secondary"
-                text
-                rounded
-                @click="editUserRole(data)"
-                v-tooltip.top="'Editează rolul'"
-              />
+              <div class="action-buttons">
+                <Button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  text
+                  rounded
+                  @click="editUserRole(data)"
+                  v-tooltip.top="'Editează rolul'"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  @click="confirmDeleteUser(data)"
+                  v-tooltip.top="'Șterge utilizator'"
+                />
+              </div>
             </template>
           </Column>
         </DataTable>
@@ -101,12 +111,16 @@
         </div>
       </div>
     </Dialog>
+
+    <!-- Confirmare ștergere -->
+    <ConfirmDialog />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useToast } from 'primevue/usetoast'
+import { useConfirm } from 'primevue/useconfirm'
 import { userService } from '@/services/userService'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
@@ -115,16 +129,19 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
+import ConfirmDialog from 'primevue/confirmdialog'
 import UserForm from '@/components/UserForm.vue'
 import type { UserProfile } from '@/services/authService'
 
 const toast = useToast()
+const confirm = useConfirm()
 const showUserDialog = ref(false)
 const showEditRoleDialog = ref(false)
 const users = ref<UserProfile[]>([])
 const usersLoading = ref(false)
 const creatingUser = ref(false)
 const updatingRole = ref(false)
+const deletingUser = ref(false)
 const editingUser = ref<UserProfile | null>(null)
 const newRole = ref<'member' | 'admin'>('member')
 
@@ -199,6 +216,39 @@ const handleRoleUpdate = async () => {
   }
 }
 
+const confirmDeleteUser = (user: UserProfile) => {
+  confirm.require({
+    message: `Ești sigur că vrei să ștergi utilizatorul "${user.username}"? Această acțiune nu poate fi anulată.`,
+    header: 'Confirmare ștergere',
+    icon: 'pi pi-exclamation-triangle',
+    acceptClass: 'p-button-danger',
+    accept: async () => {
+      await deleteUser(user.id)
+    }
+  })
+}
+
+const deleteUser = async (userId: string) => {
+  deletingUser.value = true
+  try {
+    const { error } = await userService.deleteUser(userId)
+
+    if (error) {
+      toast.add({ severity: 'error', summary: 'Eroare', detail: error.message, life: 3000 })
+    } else {
+      toast.add({ 
+        severity: 'success', 
+        summary: 'Succes', 
+        detail: 'Utilizator șters cu succes. Pentru ștergere completă din sistem, șterge-l și din Supabase Dashboard.', 
+        life: 5000 
+      })
+      await loadUsers()
+    }
+  } finally {
+    deletingUser.value = false
+  }
+}
+
 const loadUsers = async () => {
   usersLoading.value = true
   try {
@@ -269,6 +319,12 @@ onMounted(async () => {
   justify-content: flex-end;
   gap: 1rem;
   margin-top: 1rem;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 @media (min-width: 768px) {

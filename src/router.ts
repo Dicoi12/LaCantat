@@ -49,39 +49,81 @@ const router = createRouter({
 
 // Navigation guard pentru protecția rutelor
 router.beforeEach(async (to, _from, next) => {
-  // Verifică sesiunea curentă
-  const { data: { session } } = await supabase.auth.getSession();
+  try {
+    // Verifică sesiunea curentă
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-  if (to.meta.requiresAuth === false) {
-    // Dacă utilizatorul este deja autentificat și încearcă să acceseze login/signup, redirecționează la calendar
-    if (session && (to.name === 'login' || to.name === 'signup')) {
-      next('/');
-    } else {
-      next();
-    }
-  } else {
-    // Rute care necesită autentificare
-    if (!session) {
-      next('/login');
-      return;
-    }
-
-    // Verifică dacă ruta necesită admin
-    if (to.meta.requiresAdmin) {
-      // Obține profilul utilizatorului pentru a verifica rolul
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('role')
-        .eq('id', session.user.id)
-        .single();
-
-      if (!profile || profile.role !== 'admin') {
-        next('/');
+    // Dacă există eroare de sesiune invalidă, curăță și redirecționează
+    if (sessionError) {
+      console.error('Session error:', sessionError);
+      // Curăță sesiunea invalidă
+      await supabase.auth.signOut();
+      if (to.meta.requiresAuth !== false) {
+        next('/login');
         return;
       }
     }
 
-    next();
+    if (to.meta.requiresAuth === false) {
+      // Dacă utilizatorul este deja autentificat și încearcă să acceseze login/signup, redirecționează la calendar
+      if (session && (to.name === 'login' || to.name === 'signup')) {
+        next('/');
+      } else {
+        next();
+      }
+    } else {
+      // Rute care necesită autentificare
+      if (!session) {
+        next('/login');
+        return;
+      }
+
+      // Verifică dacă ruta necesită admin
+      if (to.meta.requiresAdmin) {
+        try {
+          // Obține profilul utilizatorului pentru a verifica rolul
+          const { data: profile, error: profileError } = await supabase
+            .from('user_profiles')
+            .select('role')
+            .eq('id', session.user.id)
+            .single();
+
+          // Dacă nu există profil sau eroare, sesiunea este invalidă
+          if (profileError || !profile) {
+            console.error('Profile error or not found:', profileError);
+            await supabase.auth.signOut();
+            next('/login');
+            return;
+          }
+
+          if (profile.role !== 'admin') {
+            next('/');
+            return;
+          }
+        } catch (err) {
+          console.error('Error checking admin role:', err);
+          await supabase.auth.signOut();
+          next('/login');
+          return;
+        }
+      }
+
+      next();
+    }
+  } catch (err: any) {
+    // Dacă eroarea indică sesiune invalidă, curăță și redirecționează
+    if (err?.message?.includes('session') || err?.message?.includes('JWT')) {
+      console.error('Invalid session in router guard:', err);
+      await supabase.auth.signOut();
+      if (to.meta.requiresAuth !== false) {
+        next('/login');
+      } else {
+        next();
+      }
+    } else {
+      console.error('Router guard error:', err);
+      next();
+    }
   }
 });
 

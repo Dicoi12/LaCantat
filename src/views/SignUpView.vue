@@ -117,6 +117,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuth } from '@/composables/useAuth'
+import { useToast } from 'primevue/usetoast'
 import Card from 'primevue/card'
 import InputText from 'primevue/inputtext'
 import Password from 'primevue/password'
@@ -124,6 +125,7 @@ import Button from 'primevue/button'
 import Message from 'primevue/message'
 
 const router = useRouter()
+const toast = useToast()
 const { signUp, loading, error: authError } = useAuth()
 
 const email = ref('')
@@ -176,7 +178,8 @@ const handleSignUp = async () => {
     return
   }
 
-  const success = await signUp(
+  // Request-ul a fost trimis - apelăm signUp
+  await signUp(
     email.value,
     password.value,
     username.value,
@@ -184,9 +187,16 @@ const handleSignUp = async () => {
     'member' // Toți utilizatorii noi sunt membri
   )
 
-  if (success) {
-    router.push('/')
-  }
+  // După ce request-ul a fost trimis, facem redirect la login
+  // Chiar dacă există erori (ex: email confirmation necesară), utilizatorul va vedea mesajul pe login
+  toast.add({
+    severity: 'success',
+    summary: 'Cont creat',
+    detail: 'Te rugăm să verifici emailul pentru a confirma contul. Apoi te poți autentifica.',
+    life: 5000
+  })
+
+  router.push('/login')
 }
 </script>
 

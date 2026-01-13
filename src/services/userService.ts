@@ -112,15 +112,29 @@ export const userService = {
 
   /**
    * Șterge un utilizator (doar admini)
-   * NOTĂ: Pentru ștergerea utilizatorilor, folosește Supabase Dashboard
-   * sau configurează service role key pentru a folosi admin API
+   * Șterge din user_profiles. Pentru ștergere completă din auth.users,
+   * folosește Supabase Dashboard sau configurează service role key
    */
-  // async deleteUser(userId: string): Promise<{ error: Error | null }> {
-  //   // Ștergerea utilizatorilor necesită service role key
-  //   // Pentru moment, returnăm eroare - poate fi implementat mai târziu
-  //   return {
-  //     error: new Error('Ștergerea utilizatorilor necesită configurare service role key. Folosește Supabase Dashboard.')
-  //   }
-  // }
+  async deleteUser(userId: string): Promise<{ error: Error | null }> {
+    try {
+      // Ștergem din user_profiles
+      // Dacă vrei ștergere completă din auth.users, folosește Supabase Dashboard
+      // sau configurează service role key pentru Admin API
+      const { error } = await supabase
+        .from('user_profiles')
+        .delete()
+        .eq('id', userId)
+
+      if (error) {
+        return { error }
+      }
+
+      return { error: null }
+    } catch (error) {
+      return {
+        error: error instanceof Error ? error : new Error('Eroare la ștergerea utilizatorului')
+      }
+    }
+  }
 }
 
