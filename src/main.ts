@@ -10,9 +10,6 @@ import ConfirmationService from 'primevue/confirmationservice';
 import { useAuth } from './composables/useAuth';
 import { setupAutoUpdate } from './utils/pwa-update';
 
-// Configurează actualizarea automată PWA (similar cu Ctrl+F5)
-setupAutoUpdate()
-
 const app = createApp(App)
 
 app.use(PrimeVue, {
@@ -29,5 +26,9 @@ app.use(ConfirmationService)
 const { initAuth } = useAuth()
 initAuth().then(() => {
     app.mount('#app')
+    // Configurează actualizarea automată PWA după mount (similar cu Ctrl+F5)
+    if (import.meta.env.PROD) {
+        setupAutoUpdate()
+    }
 })
     

@@ -150,6 +150,7 @@ onMounted(async () => {
   gap: 1rem;
 }
 
+
 .days-badge {
   font-size: 0.875rem;
   font-weight: 600;

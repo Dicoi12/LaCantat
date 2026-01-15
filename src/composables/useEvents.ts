@@ -122,6 +122,32 @@ export function useEvents() {
   }
 
   /**
+   * Obține toate evenimentele viitoare (data > azi)
+   */
+  const getFutureEvents = async (): Promise<Event[]> => {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayStr = today.toISOString().split('T')[0]
+
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('events')
+        .select('*')
+        .gt('event_date', todayStr) // Strict mai mare decât azi (exclude astăzi)
+        .order('event_date', { ascending: true })
+        .order('event_time', { ascending: true })
+
+      if (fetchError) {
+        return []
+      }
+
+      return (data || []) as Event[]
+    } catch {
+      return []
+    }
+  }
+
+  /**
    * Creează un eveniment nou (doar admin)
    */
   const createEvent = async (eventData: CreateEventData): Promise<Event | null> => {
@@ -233,6 +259,7 @@ export function useEvents() {
     fetchEvents,
     fetchEventsByMonth,
     getNextEvent,
+    getFutureEvents,
     createEvent,
     updateEvent,
     deleteEvent

@@ -55,6 +55,9 @@ export default defineConfig({
             }
           }
         ]
+      },
+      devOptions: {
+        enabled: false // Dezactivează PWA în development pentru a evita erorile cu service worker
       }
     })
   ],

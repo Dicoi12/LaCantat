@@ -5,15 +5,37 @@
       <template #title>
         <div class="card-title">
           <span>Următorul eveniment</span>
-          <Tag
-            v-if="nextEvent && daysUntilEvent !== null"
-            :value="daysUntilEventText"
-            :severity="daysUntilEvent === 0 ? 'success' : 'info'"
-            class="days-badge"
-          />
+          <div class="calendar-export-buttons">
+            <Button
+              icon="pi pi-mobile"
+              rounded
+              text
+              severity="secondary"
+              size="small"
+              v-tooltip.top="'Exportă în Apple Calendar'"
+              @click="exportToAppleCalendar"
+              :disabled="exporting"
+              class="export-btn apple-btn"
+              aria-label="Exportă în Apple Calendar"
+            />
+            <Button
+              icon="pi pi-android"
+              rounded
+              text
+              severity="secondary"
+              size="small"
+              v-tooltip.top="'Exportă în Google Calendar'"
+              @click="exportToGoogleCalendar"
+              :disabled="exporting"
+              class="export-btn google-btn"
+              aria-label="Exportă în Google Calendar"
+            />
+          </div>
         </div>
       </template>
       <template #content>
+        <div class="calendar-export-section">
+        </div>
         <div v-if="nextEventLoading" class="loading">
           <ProgressSpinner />
         </div>
@@ -241,6 +263,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useAuth } from '@/composables/useAuth'
 import { useEvents, type Event, type CreateEventData } from '@/composables/useEvents'
+import { exportToCalendar } from '@/utils/calendarExport'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -258,6 +281,7 @@ const {
   loading: eventsLoading,
   fetchEventsByMonth,
   getNextEvent,
+  getFutureEvents,
   createEvent,
   updateEvent,
   deleteEvent
@@ -272,6 +296,7 @@ const dayEventsLoading = ref(false)
 const selectedDayDate = ref<Date | null>(null)
 const nextEvent = ref<Event | null>(null)
 const nextEventLoading = ref(true)
+const exporting = ref(false)
 
 const currentMonth = computed(() => selectedDate.value.getMonth() + 1)
 const currentYear = computed(() => selectedDate.value.getFullYear())
@@ -422,6 +447,70 @@ const loadNextEvent = async () => {
   nextEventLoading.value = true
   nextEvent.value = await getNextEvent()
   nextEventLoading.value = false
+}
+
+const exportToAppleCalendar = async () => {
+  exporting.value = true
+  try {
+    const futureEvents = await getFutureEvents()
+    if (futureEvents.length === 0) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Niciun eveniment',
+        detail: 'Nu există evenimente viitoare de exportat',
+        life: 3000
+      })
+      return
+    }
+    exportToCalendar(futureEvents)
+    toast.add({
+      severity: 'success',
+      summary: 'Export reușit',
+      detail: `${futureEvents.length} eveniment${futureEvents.length > 1 ? 'e' : ''} exportat${futureEvents.length > 1 ? 'e' : ''} în calendar`,
+      life: 3000
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Eroare',
+      detail: 'Eroare la exportul evenimentelor',
+      life: 3000
+    })
+  } finally {
+    exporting.value = false
+  }
+}
+
+const exportToGoogleCalendar = async () => {
+  exporting.value = true
+  try {
+    const futureEvents = await getFutureEvents()
+    if (futureEvents.length === 0) {
+      toast.add({
+        severity: 'warn',
+        summary: 'Niciun eveniment',
+        detail: 'Nu există evenimente viitoare de exportat',
+        life: 3000
+      })
+      return
+    }
+    exportToCalendar(futureEvents)
+    toast.add({
+      severity: 'success',
+      summary: 'Export reușit',
+      detail: `${futureEvents.length} eveniment${futureEvents.length > 1 ? 'e' : ''} exportat${futureEvents.length > 1 ? 'e' : ''} în calendar`,
+      life: 3000
+    })
+  } catch (error) {
+    toast.add({
+      severity: 'error',
+      summary: 'Eroare',
+      detail: 'Eroare la exportul evenimentelor',
+      life: 3000
+    })
+  } finally {
+    exporting.value = false
+  }
 }
 
 const openAddEventDialog = () => {
@@ -593,6 +682,68 @@ onMounted(async () => {
   display: flex;
   justify-content: center;
   padding: 1rem;
+}
+
+.calendar-export-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid var(--surface-border);
+  flex-wrap: wrap;
+}
+
+.export-label {
+  font-size: 0.9rem;
+  color: var(--text-color-secondary);
+  font-weight: 500;
+}
+
+.calendar-export-buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.export-btn {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  background-color: var(--surface-hover);
+}
+
+.export-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.apple-btn :deep(.p-button-icon) {
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+.google-btn :deep(.p-button-icon) {
+  font-size: 1.25rem;
+  color: var(--text-color);
+}
+
+@media (max-width: 768px) {
+  .calendar-export-section {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .export-label {
+    width: 100%;
+  }
 }
 
 .calendar-card {
