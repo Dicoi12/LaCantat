@@ -430,17 +430,17 @@ const daysUntilEvent = computed<number | null>(() => {
 })
 
 // Text pentru badge-ul cu zilele rămase
-const daysUntilEventText = computed(() => {
-  if (daysUntilEvent.value === null) return ''
+// const daysUntilEventText = computed(() => {
+//   if (daysUntilEvent.value === null) return ''
   
-  if (daysUntilEvent.value === 0) {
-    return 'Astăzi'
-  } else if (daysUntilEvent.value === 1) {
-    return 'Mâine'
-  } else {
-    return `În ${daysUntilEvent.value} zile`
-  }
-})
+//   if (daysUntilEvent.value === 0) {
+//     return 'Astăzi'
+//   } else if (daysUntilEvent.value === 1) {
+//     return 'Mâine'
+//   } else {
+//     return `În ${daysUntilEvent.value} zile`
+//   }
+// })
 
 // Încarcă următorul eveniment
 const loadNextEvent = async () => {
