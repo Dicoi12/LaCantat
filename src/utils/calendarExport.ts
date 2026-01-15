@@ -69,16 +69,32 @@ export function exportToCalendar(events: Event[]): void {
 
   icsContent += 'END:VCALENDAR\r\n'
 
-  // Creează blob și descarcă fișierul
+  // Creează blob și încearcă să deschidă direct în calendar
   const blob = new Blob([icsContent], { type: 'text/calendar;charset=utf-8' })
   const url = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  link.href = url
-  link.download = 'lacantat-evenimente.ics'
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(url)
+  
+  // Încearcă să deschidă direct în calendar (funcționează pe iOS și unele browsere)
+  // Pe iOS, acest link va deschide Apple Calendar direct
+  const dataUrl = `data:text/calendar;charset=utf-8,${encodeURIComponent(icsContent)}`
+  
+  // Încearcă mai întâi să deschidă direct
+  try {
+    // Pe iOS/Safari, acest link va deschide calendarul direct
+    window.location.href = dataUrl
+  } catch (error) {
+    // Dacă nu funcționează, descarcă fișierul
+    const link = document.createElement('a')
+    link.href = url
+    link.download = 'lacantat-evenimente.ics'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+  
+  // Curăță URL-ul după un scurt delay
+  setTimeout(() => {
+    URL.revokeObjectURL(url)
+  }, 1000)
 }
 
 /**
