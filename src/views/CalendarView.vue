@@ -263,7 +263,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from 'primevue/usetoast'
 import { useAuth } from '@/composables/useAuth'
 import { useEvents, type Event, type CreateEventData } from '@/composables/useEvents'
-import { exportToCalendar } from '@/utils/calendarExport'
+import { exportToCalendar, openInGoogleCalendar, openInAppleCalendar } from '@/utils/calendarExport'
 import Card from 'primevue/card'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
@@ -462,13 +462,26 @@ const exportToAppleCalendar = async () => {
       })
       return
     }
-    exportToCalendar(futureEvents)
-    toast.add({
-      severity: 'success',
-      summary: 'Export reușit',
-      detail: `${futureEvents.length} eveniment${futureEvents.length > 1 ? 'e' : ''} exportat${futureEvents.length > 1 ? 'e' : ''} în calendar`,
-      life: 3000
-    })
+    
+    // Dacă există un singur eveniment, deschide direct în Apple Calendar
+    if (futureEvents.length === 1 && futureEvents[0]) {
+      openInAppleCalendar(futureEvents[0])
+      toast.add({
+        severity: 'info',
+        summary: 'Deschidere calendar',
+        detail: 'Se deschide Apple Calendar...',
+        life: 2000
+      })
+    } else {
+      // Pentru mai multe evenimente, exportă fișierul .ics
+      exportToCalendar(futureEvents)
+      toast.add({
+        severity: 'success',
+        summary: 'Export reușit',
+        detail: `${futureEvents.length} eveniment${futureEvents.length > 1 ? 'e' : ''} exportat${futureEvents.length > 1 ? 'e' : ''}`,
+        life: 3000
+      })
+    }
   } catch (error) {
     toast.add({
       severity: 'error',
@@ -494,13 +507,26 @@ const exportToGoogleCalendar = async () => {
       })
       return
     }
-    exportToCalendar(futureEvents)
-    toast.add({
-      severity: 'success',
-      summary: 'Export reușit',
-      detail: `${futureEvents.length} eveniment${futureEvents.length > 1 ? 'e' : ''} exportat${futureEvents.length > 1 ? 'e' : ''} în calendar`,
-      life: 3000
-    })
+    
+    // Dacă există un singur eveniment, deschide direct în Google Calendar
+    if (futureEvents.length === 1 && futureEvents[0]) {
+      openInGoogleCalendar(futureEvents[0])
+      toast.add({
+        severity: 'info',
+        summary: 'Deschidere calendar',
+        detail: 'Se deschide Google Calendar...',
+        life: 2000
+      })
+    } else {
+      // Pentru mai multe evenimente, exportă fișierul .ics
+      exportToCalendar(futureEvents)
+      toast.add({
+        severity: 'success',
+        summary: 'Export reușit',
+        detail: `${futureEvents.length} eveniment${futureEvents.length > 1 ? 'e' : ''} exportat${futureEvents.length > 1 ? 'e' : ''}`,
+        life: 3000
+      })
+    }
   } catch (error) {
     toast.add({
       severity: 'error',
