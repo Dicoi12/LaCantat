@@ -3,7 +3,7 @@
     <Card class="next-event-card">
       <template #title>
         <div class="card-title">
-          <span>Următorul eveniment</span>
+          <span>Următorul eveniment programat</span>
           <Tag
             v-if="nextEvent && daysUntilEvent !== null"
             :value="daysUntilEventText"
